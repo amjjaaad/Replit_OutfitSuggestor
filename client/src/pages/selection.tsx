@@ -55,6 +55,20 @@ export default function Selection({ appState, navigateToScreen, updateAppState }
     }
   }, [uploadMutation]);
 
+  const openCamera = useCallback(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.setAttribute('capture', 'environment');
+      fileInputRef.current.click();
+    }
+  }, []);
+
+  const openGallery = useCallback(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.removeAttribute('capture');
+      fileInputRef.current.click();
+    }
+  }, []);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -117,10 +131,14 @@ export default function Selection({ appState, navigateToScreen, updateAppState }
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Upload Your Clothing</h3>
             <p className="text-gray-500 mb-4">Take photos or select from your gallery</p>
             <div className="space-y-3">
-              <Button className="w-full bg-primary text-white font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors">
+              <Button 
+                onClick={openCamera}
+                className="w-full bg-primary text-white font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors"
+              >
                 📷 Take Photo
               </Button>
               <Button
+                onClick={openGallery}
                 variant="outline"
                 className="w-full border border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors"
               >

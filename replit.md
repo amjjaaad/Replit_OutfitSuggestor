@@ -44,9 +44,9 @@ The application follows a state machine pattern with six distinct screens:
 - **Preview**: Client-side blob URLs for immediate user feedback
 
 ### AI Integration
-- **Classification Service**: OpenAI GPT-4o analyzes clothing images and categorizes them into predefined types (Top, Pants, Skirt, Dress, Outerwear, Shoes, Accessory)
+- **Classification Service**: Google Gemini 2.5-flash analyzes clothing images and categorizes them into predefined types (Top, Pants, Skirt, Dress, Outerwear, Shoes, Accessory)
 - **Confidence Scoring**: AI provides confidence scores (0.0-1.0) for each classification
-- **Outfit Generation**: AI creates outfit combinations based on confirmed item classifications
+- **Outfit Generation**: Gemini 2.5-pro creates outfit combinations based on confirmed item classifications
 
 ### UI/UX Design
 - **Mobile-First**: Responsive design optimized for mobile devices
@@ -72,7 +72,7 @@ The application follows a state machine pattern with six distinct screens:
 ### Backend Dependencies
 - **Server**: Express.js with TypeScript support
 - **File Handling**: Multer for multipart form processing
-- **AI Service**: OpenAI SDK for GPT-4o integration
+- **AI Service**: Google Gemini SDK for AI integration
 - **Database**: Drizzle ORM with PostgreSQL support (configured but not actively used)
 
 ### Build and Development Tools
@@ -94,11 +94,13 @@ The application follows a state machine pattern with six distinct screens:
 
 ### Environment Configuration
 - **Database**: PostgreSQL connection via DATABASE_URL environment variable
-- **AI Service**: OpenAI API key configuration
+- **AI Service**: Google Gemini API key configuration
 - **Development Tools**: Replit-specific plugins and error overlays
 
 ## Changelog
 - June 28, 2025. Initial setup
+- June 28, 2025. Migrated from OpenAI to Google Gemini AI
+- June 28, 2025. Fixed camera access for mobile photo capture
 
 ## User Preferences
 
