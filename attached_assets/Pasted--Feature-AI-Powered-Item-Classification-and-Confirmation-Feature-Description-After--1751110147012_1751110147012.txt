@@ -1,0 +1,252 @@
+### **Feature: AI-Powered Item Classification and Confirmation**
+
+**Feature Description:**
+After the user uploads their clothing photos, the app first sends them to an AI service for initial analysis and classification (e.g., identifying an item as a "Top," "Pants," or "Shoes"). The app then presents these AI-generated classifications to the user for review. The user can quickly confirm the classifications or correct any mistakes before proceeding to the final outfit generation step. This two-step process ensures higher accuracy and gives the user more control.
+
+---
+
+### ** User Flow State Machine**
+
+The application state machine becomes more sophisticated:
+
+1.  `HOME`: Welcome screen.
+2.  `SELECTION`: User adds photos.
+3.  `CLASSIFYING` (New Loading State): A brief loading state while the AI analyzes the images to determine their category.
+4.  `CONFIRMATION` (New Screen): The user reviews and corrects the AI's classifications.
+5.  `GENERATING` (Formerly 'LOADING'): The main loading state while the AI creates outfits based on the *confirmed* items.
+6.  `RESULTS`: The final outfit recommendations are displayed.
+
+---
+
+### **UI Component Breakdown **
+
+#### 1. Loading Screen: `ClassifyingScreen` (New)
+
+*   **Purpose:** To provide feedback during the initial, typically faster, AI process of item classification. Differentiating this from the main "outfit generation" loading screen manages user expectations for different wait times.
+*   **UI Elements:**
+    *   An animated icon, perhaps different from the main loading spinner to subtly indicate a different process (e.g., a scanning or tagging icon).
+    *   Descriptive text.
+*   **Text Examples:** "Scanning your items...", "Identifying categories...", "Almost there...".
+
+#### 2. `ClassificationConfirmationScreen` (New Core Component)
+
+*   **Purpose:** This is the most critical new screen. It displays each clothing item with its AI-assigned category tag and allows the user to easily correct any errors.
+*   **Interactivity & UI Elements:**
+    *   **Item List:** The screen will display a vertical list of all the uploaded items. Each item is presented as a card.
+    *   **Item Card:**
+        *   **Image Thumbnail:** A clear, large thumbnail of the user's photo (`w-24 h-24` or similar).
+        *   **Classification Tag/Dropdown:** Next to the image, there will be a UI element that looks like a tag but functions as a dropdown menu.
+            *   **Initial State:** It displays the AI's best guess (e.g., "Top").
+            *   **Interaction:** When the user taps on the tag, a dropdown menu appears with a predefined list of categories (`Top`, `Pants`, `Skirt`, `Shoes`, `Outerwear`, `Accessory`). The user can select the correct category if the AI was wrong.
+    *   **Confidence Indicator (Optional but Recommended):** If the AI provides a confidence score, the UI can use it. Items with low confidence (e.g., < 80%) can have their tag highlighted with a yellow border or a small warning icon (`MdPriorityHigh`) to draw the user's attention, prompting them to double-check.
+    *   **Primary Action Button:** A prominent button at the bottom of the screen.
+        *   **Text:** "Confirm & Generate Outfits".
+        *   **State:** Always enabled, as the user can proceed even if the classifications are correct.
+
+---
+
+### **Implementation Recommendations**
+
+*   **Component Structure (`ClassificationConfirmationScreen`):**
+    *   A main `div` with `flex flex-col` and `gap-4` to stack the item cards.
+    *   Each item card is a `div` with `flex items-center justify-between p-4 bg-white rounded-lg shadow-sm`.
+    *   Inside the card, a `div` contains the `img` thumbnail. Another `div` contains the item name (if available) and the classification dropdown.
+    *   The dropdown can be implemented using a styled native `<select>` element for simplicity or a headless UI library (like Headless UI) for full style control.
+
+*   **Styling (Tailwind CSS for the Classification Tag):**
+    ```html
+    <!-- This is the interactive tag/dropdown -->
+    <div class="relative">
+      <select class="appearance-none bg-slate-200 text-slate-800 font-semibold py-1 px-3 rounded-full cursor-pointer pr-8">
+        <option>Top</option>
+        <option>Pants</option>
+        <option>Shoes</option>
+      </select>
+      <!-- Downward arrow to indicate it's a dropdown -->
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700">
+        <MdExpandMore />
+      </div>
+    </div>
+    ```
+
+*   **Icons (React Icons):**
+    *   `MdExpandMore`: For the dropdown indicator on the classification tag.
+    *   `MdCheckCircleOutline`: Could be used on the "Confirm & Generate" button.
+    *   `MdPriorityHigh`: For highlighting low-confidence classifications.
+    *   `GiPerspectiveDiceSixFacesRandom` (or similar): For the "Classifying..." loading screen to differentiate it from the main spinner.
+
+*   **Font:** `Inter` remains an excellent choice for its high legibility, which is crucial for reading the classification tags correctly.
+
+### **Front-End Data Contract (Conceptual)**
+
+This new flow requires a two-step API interaction.
+
+**Step 1: Request Classification**
+The front-end sends the image data to a classification endpoint.
+*   **`POST /api/classify-items`**
+*   **Body:** `{ "images": [{ "id": "temp_id_1", "imageUrl": "..." }] }`
+
+**Step 2: Receive Classifications and Display**
+The backend responds with the AI's analysis.
+*   **Response Body:**
+    ```json
+    {
+      "classifiedItems": [
+        {
+          "id": "temp_id_1",
+          "imageUrl": "...",
+          "aiCategory": "Top",
+          "confidence": 0.98
+        },
+        {
+          "id": "temp_id_2",
+          "imageUrl": "...",
+          "aiCategory": "Shoes", // AI might be wrong here
+          "confidence": 0.75 // Lower confidence
+        }
+      ]
+    }
+    ```
+The front-end uses this data to render the `ClassificationConfirmationScreen`.
+
+**Step 3: Send Confirmed Data for Outfit Generation**
+After the user reviews and makes corrections, the front-end sends the final, clean data to the generation endpoint.
+*   **`POST /api/generate-outfits`**
+*   **Body:**
+    ```json
+    {
+      "items": [
+        { "id": "temp_id_1", "imageUrl": "...", "category": "Top" },
+        { "id": "temp_id_2", "imageUrl": "...", "category": "Pants" } // User corrected this from "Shoes"
+      ],
+      "userPreferences": { "style": "Casual" }
+    }
+    ```
+This ensures the final outfit recommendations are based on data the user has personally validated, dramatically improving the quality and relevance of the results.
+
+Of course. Here are the recommended AI prompts for the two distinct AI tasks in the application flow: **Item Classification** and **Outfit Generation**.
+
+These prompts are designed to produce a predictable, structured JSON output that the front-end can easily parse and display.
+
+---
+
+### **Prompt 1: Item Classification**
+
+This prompt is sent to a multimodal AI model to analyze the user's images and categorize each item.
+
+**Objective:** To turn raw images into a structured list of items with categories.
+
+> **System Prompt:**
+> You are an expert AI fashion item classifier. Your sole purpose is to analyze images of clothing and accurately categorize them. You must adhere strictly to the predefined categories and the requested JSON output format.
+>
+> **User Prompt:**
+>
+> **Task:**
+> For each image provided in the input list, identify the single most prominent clothing item and classify it into one of the following exact categories: `Top`, `Pants`, `Skirt`, `Dress`, `Outerwear`, `Shoes`, `Accessory`, `Other`.
+>
+> Also, provide a confidence score from 0.0 to 1.0 for your classification.
+>
+> **Input Data:**
+> The input is a JSON object containing a list of items, each with a unique `itemId` and an `imageUrl`.
+> ```json
+> {
+>   "items": [
+>     { "itemId": "img_001", "imageUrl": "[URL to image of a blue t-shirt]" },
+>     { "itemId": "img_002", "imageUrl": "[URL to image of black jeans]" },
+>     { "itemId": "img_003", "imageUrl": "[URL to image of a leather jacket]" }
+>   ]
+> }
+> ```
+>
+> **Output Format:**
+> Respond with a single JSON object containing a key `classifiedItems`. This key must hold an array of objects, where each object corresponds to an input item and includes the `itemId`, your `predictedCategory`, and the `confidenceScore`. Do not include any other text or explanation outside of the JSON object.
+>
+> **Example Output:**
+> ```json
+> {
+>   "classifiedItems": [
+>     {
+>       "itemId": "img_001",
+>       "predictedCategory": "Top",
+>       "confidenceScore": 0.99
+>     },
+>     {
+>       "itemId": "img_002",
+>       "predictedCategory": "Pants",
+>       "confidenceScore": 0.97
+>     },
+>     {
+>       "itemId": "img_003",
+>       "predictedCategory": "Outerwear",
+>       "confidenceScore": 0.95
+>     }
+>   ]
+> }
+> ```
+
+---
+
+### **Prompt 2: Outfit Generation**
+
+This prompt is sent after the user has confirmed or corrected the classifications. It uses the clean, validated data to generate the final recommendations.
+
+**Objective:** To creatively combine classified items into stylish outfits based on user preferences.
+
+> **System Prompt:**
+> You are a world-class AI fashion stylist. Your goal is to create stylish, complete, and coherent outfits from a given collection of clothing items. You must follow the user's preferences and use only the items provided.
+>
+> **User Prompt:**
+>
+> **Task:**
+> Create **3** unique and complete outfits from the provided list of clothing items. A complete outfit should ideally consist of a `Top`, a bottom (`Pants` or `Skirt`), and `Shoes`. `Outerwear` and `Accessory` items are optional but can be used to enhance an outfit.
+>
+> Adhere to the user's specified preferences for `style` and `occasion`.
+>
+> **Input Data:**
+> The input is a JSON object containing a list of user-confirmed `items` and their `userPreferences`.
+> ```json
+> {
+>   "items": [
+>     { "itemId": "img_001", "category": "Top", "imageUrl": "..." },
+>     { "itemId": "img_002", "category": "Pants", "imageUrl": "..." },
+>     { "itemId": "img_003", "category": "Outerwear", "imageUrl": "..." },
+>     { "itemId": "img_004", "category": "Shoes", "imageUrl": "..." }
+>   ],
+>   "userPreferences": {
+>     "style": "Casual",
+>     "occasion": "Weekend"
+>   }
+> }
+> ```
+>
+> **Output Format:**
+> Respond with a single JSON object containing a key `recommendations`. This key must hold an array of outfit objects. Each outfit object must contain:
+> 1.  `itemIds`: An array of the `itemId` strings used in this outfit.
+> 2.  `reasoningTags`: A short array of 2-3 descriptive tags (e.g., "Classic Combo", "Comfort-First", "Street Style").
+> 3.  `description`: A single, concise sentence explaining why the outfit works for the user's preferences.
+>
+> Do not include any other text or explanation outside of the JSON object.
+>
+> **Example Output:**
+> ```json
+> {
+>   "recommendations": [
+>     {
+>       "itemIds": ["img_001", "img_002", "img_004"],
+>       "reasoningTags": ["Effortless Style", "Weekend Ready"],
+>       "description": "A classic and comfortable look perfect for a casual weekend outing."
+>     },
+>     {
+>       "itemIds": ["img_001", "img_002", "img_003", "img_004"],
+>       "reasoningTags": ["Layered Look", "Versatile"],
+>       "description": "Adding the jacket creates a stylish, layered outfit that works for cooler evenings."
+>     },
+>     {
+>       "itemIds": ["img_001", "img_002"],
+>       "reasoningTags": ["Minimalist", "Core Basics"],
+>       "description": "This simple pairing of a top and pants is a timeless foundation for any casual wardrobe."
+>     }
+>   ]
+> }
+> ```
+
